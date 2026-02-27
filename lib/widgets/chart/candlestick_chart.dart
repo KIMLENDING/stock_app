@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../models/chart_candle.dart';
+import '../../models/chart_candle.dart';
 
 /// 커스텀 캔들스틱 차트 위젯
 /// CustomPainter를 사용하여 OHLC 캔들 + 거래량 바를 그립니다.
@@ -12,6 +12,7 @@ class CandlestickChart extends StatefulWidget {
   final VoidCallback? onLoadMore;
   final bool hasMore;
   final bool isLoadingMore;
+  final void Function(ChartCandle?)? onSelectCandle;
 
   const CandlestickChart({
     super.key,
@@ -19,6 +20,7 @@ class CandlestickChart extends StatefulWidget {
     this.onLoadMore,
     this.hasMore = false,
     this.isLoadingMore = false,
+    this.onSelectCandle,
   });
 
   @override
@@ -125,7 +127,6 @@ class _CandlestickChartState extends State<CandlestickChart> {
 
     return Column(
       children: [
-        _buildInfoBar(),
         // 줌 컨트롤 버튼
         _buildZoomControls(),
         // 캔들 차트 영역 (70%)
@@ -175,16 +176,6 @@ class _CandlestickChartState extends State<CandlestickChart> {
         ),
       ],
     );
-  }
-
-  Widget _buildInfoBar() {
-    if (_selectedIndex == null ||
-        _selectedIndex! >= widget.candles.length ||
-        _selectedIndex! < 0) {
-      final latest = widget.candles.last;
-      return _buildCandleInfo(latest);
-    }
-    return _buildCandleInfo(widget.candles[_selectedIndex!]);
   }
 
   Widget _buildZoomControls() {
@@ -245,66 +236,6 @@ class _CandlestickChartState extends State<CandlestickChart> {
     );
   }
 
-  Widget _buildCandleInfo(ChartCandle candle) {
-    final dateFormat = DateFormat('yyyy.MM.dd');
-    final priceFormat = NumberFormat('#,###');
-    final volumeFormat = NumberFormat('#,###');
-    final isUp = candle.isBullish;
-    final color = isUp ? const Color(0xFFEF5350) : const Color(0xFF42A5F5);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            Text(
-              dateFormat.format(candle.date),
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 8),
-            _infoChip('시', priceFormat.format(candle.open), color),
-            _infoChip('고', priceFormat.format(candle.high), color),
-            _infoChip('저', priceFormat.format(candle.low), color),
-            _infoChip('종', priceFormat.format(candle.close), color),
-            const SizedBox(width: 8),
-            Text(
-              '거래량 ${volumeFormat.format(candle.volume)}',
-              style: TextStyle(color: Colors.grey[500], fontSize: 10),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoChip(String label, String value, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$label ',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _onScaleStart(ScaleStartDetails details) {
     _prevScale = _scale;
   }
@@ -330,6 +261,7 @@ class _CandlestickChartState extends State<CandlestickChart> {
       setState(() {
         _selectedIndex = idx;
       });
+      widget.onSelectCandle?.call(widget.candles[idx]);
     }
   }
 }
